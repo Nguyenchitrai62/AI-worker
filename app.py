@@ -47,7 +47,7 @@ def fetch_data():
             break
         ohlcv[:0] = data
         print(f"{i+1} / {num_requests}")
-        time.sleep(binance.rateLimit / 1000)
+        # time.sleep(binance.rateLimit / 1000)
     df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
     df['Date'] = pd.to_datetime(df['Date'], unit='ms')
     return df
@@ -120,7 +120,12 @@ def main_loop():
         update_mongo(df)
 
         end_time = time.time()
-        print(f"✅ Vòng lặp hoàn thành trong {end_time - start_time:.2f} giây.")
+        elapsed = end_time - start_time
+        print(f"✅ Vòng lặp hoàn thành trong {elapsed:.2f} giây.")
+        
+        # Nếu vòng lặp chạy chưa đủ 2 giây, chờ thêm
+        if elapsed < 2:
+            time.sleep(2 - elapsed)
 
 # Tạo FastAPI app
 app = FastAPI()

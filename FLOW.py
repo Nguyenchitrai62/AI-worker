@@ -39,7 +39,7 @@ def fetch_data():
     ohlcv = []
 
     for i in range(num_requests):
-        since = current_time - (i + 1) * limit * 60 * 60 * 55
+        since = current_time - (i + 1) * limit * 60 * 60 * 51
         data = binance.fetch_ohlcv(symbol, timeframe='1h', limit=limit, since=since)
         if not data:
             break
@@ -120,11 +120,13 @@ def main():
         # Dự đoán với mô hình Transformer
         df = predict_with_model(df)
         
+        print(df.iloc[:, -1])
+
         final_row_count = len(df)
-        # print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    
+        print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    
         
         # Cập nhật MongoDB
-        update_mongo(df)
+        # update_mongo(df)
 
         end_time = time.time()  # Lấy thời gian kết thúc vòng lặp
 
