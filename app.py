@@ -100,18 +100,11 @@ def update_mongo(df):
     except Exception as e:
         print(f"❌ Error updating MongoDB: {e}")
 
-# Fetch latest 130 sessions from MongoDB
 def fetch_mongo_data():
     try:
-        data = collection.find().sort('Date', -1).limit(130)
-        df = pd.DataFrame(list(data))
-        if not df.empty:
-            df = df.drop('_id', axis=1).sort_values('Date')
-            # print(f"✅ Fetched {len(df)} sessions from MongoDB")
-            return df
-        else:
-            print("❌ No data found in MongoDB")
-            return pd.DataFrame()
+        cursor = collection.find({}, {'_id': 0}).sort('Date', -1).limit(130)
+        df = pd.DataFrame(cursor).sort_values('Date')
+        return df
     except Exception as e:
         print(f"❌ Error fetching MongoDB data: {e}")
         return pd.DataFrame()
