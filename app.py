@@ -52,7 +52,7 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
-    return df
+    return df.dropna()
 
 # Load AI model (run once)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
