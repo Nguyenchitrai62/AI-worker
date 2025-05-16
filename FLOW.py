@@ -28,27 +28,16 @@ binance = ccxt.binance({
     'secret': '',
 })
 
-symbol = 'BTC/USDT'
-limit = 1000
-total_limit = 1000
-num_requests = total_limit // limit
-
-# Hàm để fetch dữ liệu từ Binance
 def fetch_data():
-    current_time = int(datetime.now().timestamp() * 1000)
-    ohlcv = []
-
-    for i in range(num_requests):
-        since = current_time - (i + 1) * limit * 60 * 60 * 130
-        data = binance.fetch_ohlcv(symbol, timeframe='1h', limit=limit, since=since)
-        if not data:
-            break
-        ohlcv[:0] = data
-        print(f"{i+1} / {num_requests}")
-        time.sleep(binance.rateLimit / 1000)
+    try:
+        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=130)
         df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-        df['Date'] = pd.to_datetime(df['Date'], unit='ms') 
-    return df
+        df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+        # print(f"✅ Fetched {len(df)} recent sessions")
+        return df
+    except Exception as e:
+        print(f"❌ Error fetching data: {e}")
+        return pd.DataFrame()
 
 # Hàm để thêm chỉ báo kỹ thuật vào dữ liệu
 def add_technical_indicators(df):
@@ -61,7 +50,7 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
-    return df.dropna()
+    return df
 
 # Load mô hình AI (chạy 1 lần duy nhất)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
@@ -116,11 +105,11 @@ def main():
 
         # Thêm chỉ báo kỹ thuật
         df = add_technical_indicators(df)
-
+        
         # Dự đoán với mô hình Transformer
         df = predict_with_model(df)
         
-        print(df.iloc[:, -1])
+        # print(df['confidence'])
 
         final_row_count = len(df)
         print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    

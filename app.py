@@ -30,14 +30,9 @@ binance = ccxt.binance({
     'secret': '',
 })
 
-symbol = 'BTC/USDT'
-timeframe = '1h'
-
-# Fetch 5 recent sessions from Binance
 def fetch_data():
-    limit = 5  # Only fetch 5 recent sessions
     try:
-        ohlcv = binance.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=5)
         df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['Date'] = pd.to_datetime(df['Date'], unit='ms')
         # print(f"✅ Fetched {len(df)} recent sessions")
@@ -57,7 +52,7 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
-    return df.dropna()
+    return df
 
 # Load AI model (run once)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
@@ -108,7 +103,7 @@ def update_mongo(df):
 # Fetch latest 130 sessions from MongoDB
 def fetch_mongo_data():
     try:
-        data = collection.find().sort('Date', -1).limit(127)
+        data = collection.find().sort('Date', -1).limit(130)
         df = pd.DataFrame(list(data))
         if not df.empty:
             df = df.drop('_id', axis=1).sort_values('Date')
@@ -137,10 +132,11 @@ def main_loop():
         if not df_mongo.empty:
             # Step 4: Add technical indicators
             df_mongo = add_technical_indicators(df_mongo)
+            
             # Step 5: Run AI model predictions
             df_mongo = predict_with_model(df_mongo)
             
-            # print(df_mongo.iloc[:, -1])
+            # print(df_mongo['confidence'])
             
             # Step 6: Update MongoDB with predictions
             update_mongo(df_mongo)
