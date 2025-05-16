@@ -39,7 +39,7 @@ def fetch_data():
     ohlcv = []
 
     for i in range(num_requests):
-        since = current_time - (i + 1) * limit * 60 * 60 * 51
+        since = current_time - (i + 1) * limit * 60 * 60 * 130
         data = binance.fetch_ohlcv(symbol, timeframe='1h', limit=limit, since=since)
         if not data:
             break
@@ -71,13 +71,13 @@ def predict_with_model(df):
     features = ['close/open', 'high-low', 'ema12', 'ema26', 'macd', 'rsi14', 'stoch_rsi', 'bb_width']
     X_raw = df[features].values
 
-    def create_input_sequences(X, timesteps=24):
+    def create_input_sequences(X, timesteps=100):
         Xs = []
         for i in range(len(X) - timesteps):
             Xs.append(X[i:i+timesteps])
         return np.array(Xs)
 
-    timesteps = 24
+    timesteps = 100
     X_seq = create_input_sequences(X_raw, timesteps)
 
     pred_probs = model.predict(X_seq, verbose=0)
@@ -126,7 +126,7 @@ def main():
         print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    
         
         # Cập nhật MongoDB
-        # update_mongo(df)
+        update_mongo(df)
 
         end_time = time.time()  # Lấy thời gian kết thúc vòng lặp
 
