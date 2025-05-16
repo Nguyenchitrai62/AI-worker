@@ -12,47 +12,41 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 import threading
 
-# Load biến môi trường
+# Load environment variables
 load_dotenv()
 password = os.getenv('MONGO_PASSWORD')
 
-# Kết nối MongoDB Atlas
+# Connect to MongoDB Atlas
 uri = f"mongodb+srv://trainguyenchi30:{password}@cryptodata.t2i1je2.mongodb.net/?retryWrites=true&w=majority&appName=CryptoData"
 client = MongoClient(uri, server_api=ServerApi('1'))
 
-# Truy cập DB và Collection
+# Access DB and Collection
 db = client['my_database']
 collection = db['my_collection']
 
-# Kết nối với Binance
+# Connect to Binance
 binance = ccxt.binance({
     'apiKey': '',
     'secret': '',
 })
 
 symbol = 'BTC/USDT'
-limit = 1000
-total_limit = 1000
-num_requests = total_limit // limit
+timeframe = '1h'
 
-# Hàm để fetch dữ liệu từ Binance
+# Fetch 5 recent sessions from Binance
 def fetch_data():
-    current_time = int(datetime.now().timestamp() * 1000)
-    ohlcv = []
+    limit = 5  # Only fetch 5 recent sessions
+    try:
+        ohlcv = binance.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+        df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+        df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+        # print(f"✅ Fetched {len(df)} recent sessions")
+        return df
+    except Exception as e:
+        print(f"❌ Error fetching data: {e}")
+        return pd.DataFrame()
 
-    for i in range(num_requests):
-        since = current_time - (i + 1) * limit * 60 * 60 * 130
-        data = binance.fetch_ohlcv(symbol, timeframe='1h', limit=limit, since=since)
-        if not data:
-            break
-        ohlcv[:0] = data
-        print(f"{i+1} / {num_requests}")
-        # time.sleep(binance.rateLimit / 1000)
-    df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-    df['Date'] = pd.to_datetime(df['Date'], unit='ms')
-    return df
-
-# Hàm để thêm chỉ báo kỹ thuật vào dữ liệu
+# Add technical indicators to DataFrame
 def add_technical_indicators(df):
     df['close/open'] = df['Close'] / df['Open'] - 1
     df['high-low'] = (df['High'] - df['Low']) / df['Close']
@@ -65,10 +59,10 @@ def add_technical_indicators(df):
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
     return df.dropna()
 
-# Load mô hình AI (chạy 1 lần duy nhất)
+# Load AI model (run once)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
 
-# Hàm dự đoán với mô hình Transformer
+# Predict with Transformer model
 def predict_with_model(df):
     features = ['close/open', 'high-low', 'ema12', 'ema26', 'macd', 'rsi14', 'stoch_rsi', 'bb_width']
     X_raw = df[features].values
@@ -92,42 +86,77 @@ def predict_with_model(df):
 
     return df.dropna()
 
-# Hàm cập nhật MongoDB
+# Update MongoDB with new data
 def update_mongo(df):
-    data_dict = df.to_dict(orient='records')
-    updated, inserted = 0, 0
-    for doc in data_dict:
-        existing_doc = collection.find_one({'Date': doc['Date']})
-        if existing_doc is None:
-            collection.insert_one(doc)
-            inserted += 1
-        else:
-            different = any(existing_doc.get(k) != doc.get(k) for k in doc.keys() if k != '_id')
-            if different:
-                collection.update_one({'Date': doc['Date']}, {'$set': doc})
-                updated += 1
-    print(f"✅ Đã cập nhật {updated} dòng, chèn mới {inserted} dòng vào MongoDB.")
+    try:
+        data_dict = df.to_dict(orient='records')
+        updated, inserted = 0, 0
+        for doc in data_dict:
+            existing_doc = collection.find_one({'Date': doc['Date']})
+            if existing_doc is None:
+                collection.insert_one(doc)
+                inserted += 1
+            else:
+                different = any(existing_doc.get(k) != doc.get(k) for k in doc.keys() if k != '_id')
+                if different:
+                    collection.update_one({'Date': doc['Date']}, {'$set': doc})
+                    updated += 1
+        # print(f"✅ Updated {updated} rows, inserted {inserted} rows into MongoDB")
+    except Exception as e:
+        print(f"❌ Error updating MongoDB: {e}")
 
-# Vòng lặp chính chạy liên tục
+# Fetch latest 130 sessions from MongoDB
+def fetch_mongo_data():
+    try:
+        data = collection.find().sort('Date', -1).limit(127)
+        df = pd.DataFrame(list(data))
+        if not df.empty:
+            df = df.drop('_id', axis=1).sort_values('Date')
+            # print(f"✅ Fetched {len(df)} sessions from MongoDB")
+            return df
+        else:
+            print("❌ No data found in MongoDB")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"❌ Error fetching MongoDB data: {e}")
+        return pd.DataFrame()
+
+# Main loop
 def main_loop():
     while True:
         start_time = time.time()
 
+        # Step 1: Fetch 5 recent sessions
         df = fetch_data()
-        df = add_technical_indicators(df)
-        df = predict_with_model(df)
-        
-        update_mongo(df)
+        if not df.empty:
+            # Step 2: Update MongoDB with new data
+            update_mongo(df)
+
+        # Step 3: Fetch 130 latest sessions from MongoDB
+        df_mongo = fetch_mongo_data()
+        if not df_mongo.empty:
+            # Step 4: Add technical indicators
+            df_mongo = add_technical_indicators(df_mongo)
+            # Step 5: Run AI model predictions
+            df_mongo = predict_with_model(df_mongo)
+            
+            # print(df_mongo.iloc[:, -1])
+            
+            # Step 6: Update MongoDB with predictions
+            update_mongo(df_mongo)
+            
+        else:
+            print("❌ Skipping predictions due to empty MongoDB data")
 
         end_time = time.time()
         elapsed = end_time - start_time
-        print(f"✅ Vòng lặp hoàn thành trong {elapsed:.2f} giây.")
-        
-        # Nếu vòng lặp chạy chưa đủ 2 giây, chờ thêm
+        print(f"✅ Loop completed in {elapsed:.2f} seconds")
+
+        # Wait for next iteration (minimum 2 seconds)
         if elapsed < 2:
             time.sleep(2 - elapsed)
 
-# Tạo FastAPI app
+# Create FastAPI app
 app = FastAPI()
 
 @app.get("/ping")
@@ -135,7 +164,7 @@ async def ping():
     return {"message": "Server alive"}
 
 if __name__ == "__main__":
-    # Chạy main_loop trong thread để không block API
+    # Run main_loop in a separate thread
     thread = threading.Thread(target=main_loop, daemon=True)
     thread.start()
 
