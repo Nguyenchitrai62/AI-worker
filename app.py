@@ -30,9 +30,9 @@ binance = ccxt.binance({
     'secret': '',
 })
 
-def fetch_data():
+def fetch_data(count = 5):
     try:
-        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=5)
+        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=count)
         df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['Date'] = pd.to_datetime(df['Date'], unit='ms')
         # print(f"✅ Fetched {len(df)} recent sessions")
@@ -52,7 +52,7 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
-    return df.dropna()
+    return df
 
 # Load AI model (run once)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
@@ -100,9 +100,9 @@ def update_mongo(df):
     except Exception as e:
         print(f"❌ Error updating MongoDB: {e}")
 
-def fetch_mongo_data():
+def fetch_mongo_data(count = 130):
     try:
-        cursor = collection.find({}, {'_id': 0}).sort('Date', -1).limit(130)
+        cursor = collection.find({}, {'_id': 0}).sort('Date', -1).limit(count)
         df = pd.DataFrame(cursor).sort_values('Date')
         return df
     except Exception as e:
@@ -115,13 +115,13 @@ def main_loop():
         start_time = time.time()
 
         # Step 1: Fetch 5 recent sessions
-        df = fetch_data()
+        df = fetch_data(5)
         if not df.empty:
             # Step 2: Update MongoDB with new data
             update_mongo(df)
 
         # Step 3: Fetch 130 latest sessions from MongoDB
-        df_mongo = fetch_mongo_data()
+        df_mongo = fetch_mongo_data(130)
         if not df_mongo.empty:
             # Step 4: Add technical indicators
             df_mongo = add_technical_indicators(df_mongo)

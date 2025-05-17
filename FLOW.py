@@ -28,9 +28,9 @@ binance = ccxt.binance({
     'secret': '',
 })
 
-def fetch_data():
+def fetch_data(count = 130):
     try:
-        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=130)
+        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=count)
         df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         df['Date'] = pd.to_datetime(df['Date'], unit='ms')
         # print(f"✅ Fetched {len(df)} recent sessions")
@@ -50,7 +50,7 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
-    return df.dropna()
+    return df
 
 # Load mô hình AI (chạy 1 lần duy nhất)
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
@@ -101,7 +101,7 @@ def main():
         start_time = time.time()  # Lấy thời gian bắt đầu vòng lặp
 
         # Crawl dữ liệu từ Binance
-        df = fetch_data()
+        df = fetch_data(130)
 
         # Thêm chỉ báo kỹ thuật
         df = add_technical_indicators(df)
