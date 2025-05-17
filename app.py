@@ -148,14 +148,24 @@ def main_loop():
 # Create FastAPI app
 app = FastAPI()
 
+# Global thread holder
+main_loop_thread = None
+
+def start_main_loop():
+    global main_loop_thread
+    if main_loop_thread is None or not main_loop_thread.is_alive():
+        print("⚠️ main_loop thread is not alive. Restarting...")
+        main_loop_thread = threading.Thread(target=main_loop, daemon=True)
+        main_loop_thread.start()
+    else:
+        print("✅ main_loop thread is still alive.")
+
 @app.get("/ping")
 async def ping():
+    start_main_loop()
     return {"message": "Server alive"}
 
 if __name__ == "__main__":
-    # Run main_loop in a separate thread
-    thread = threading.Thread(target=main_loop, daemon=True)
-    thread.start()
-
+    start_main_loop()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
