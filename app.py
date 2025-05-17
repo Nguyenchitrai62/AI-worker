@@ -11,7 +11,6 @@ from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 from fastapi import FastAPI
 import threading
-from memory_profiler import profile
 
 # Load environment variables
 load_dotenv()
