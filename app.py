@@ -11,6 +11,7 @@ from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 from fastapi import FastAPI
 import threading
+from memory_profiler import profile
 
 # Load environment variables
 load_dotenv()
@@ -52,6 +53,8 @@ def add_technical_indicators(df):
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
+    
+    df = df.dropna(subset=['ema26']).reset_index(drop=True)
     return df
 
 # Load AI model (run once)
