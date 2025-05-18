@@ -45,7 +45,7 @@ def add_technical_indicators(df):
     df['high-low'] = (df['High'] - df['Low']) / df['Close']
     df['ema12'] = ta.trend.ema_indicator(close=df['Close'], window=12) / df['Close'] - 1
     df['ema26'] = ta.trend.ema_indicator(close=df['Close'], window=26) / df['Close'] - 1
-    df['macd'] = (df['ema12'] - df['ema26']) / df['Close']
+    df['macd'] = (df['ema12'] - df['ema26'])
     df['rsi14'] = ta.momentum.RSIIndicator(close=df['Close'], window=14).rsi() / 50 - 1
     df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)

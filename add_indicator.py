@@ -5,20 +5,13 @@ import ta
 df = pd.read_csv('data.csv', parse_dates=['Date'])
 df = df.sort_values('Date')
 
-# ========= ➊ PRICE FEATURES =========
 df['close/open'] = df['Close'] / df['Open'] -1 
 df['high-low'] = (df['High'] - df['Low']) / df['Close']
-
-# ========= ➋ TREND FEATURES =========
 df['ema12'] = ta.trend.ema_indicator(close=df['Close'], window=12) /df['Close'] -1
 df['ema26'] = ta.trend.ema_indicator(close=df['Close'], window=26) /df['Close'] -1
-df['macd'] = (df['ema12'] - df['ema26'] / df['Close'])
-
-# ========= ➌ MOMENTUM FEATURES =========
+df['macd'] = (df['ema12'] - df['ema26'])
 df['rsi14'] = ta.momentum.rsi(close=df['Close'], window=14) / 50 - 1
 df['stoch_rsi'] = ta.momentum.stochrsi(close=df['Close'], window=14) * 2 -1 
-
-# ========= ➍ VOLATILITY FEATURES =========
 bb_indicator = ta.volatility.BollingerBands(close=df['Close'], window=14)
 df['bb_width'] = (bb_indicator.bollinger_hband() - bb_indicator.bollinger_lband()) / bb_indicator.bollinger_mavg()
 
