@@ -157,6 +157,7 @@ def start_main_loop():
     global main_loop_thread
     if main_loop_thread is None or not main_loop_thread.is_alive():
         print("⚠️ main_loop thread is not alive. Restarting...")
+        main_loop_thread = None  # XÓA THREAD CŨ
         main_loop_thread = threading.Thread(target=main_loop, daemon=True)
         main_loop_thread.start()
     else:
