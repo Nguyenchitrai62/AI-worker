@@ -43,13 +43,13 @@ def fetch_data(count = 5):
 
 # Add technical indicators to DataFrame
 def add_technical_indicators(df):
-    df['close/open'] = df['Close'] / df['Open'] - 1
+    df['close/open'] = df['Close'] / df['Open'] -1 
     df['high-low'] = (df['High'] - df['Low']) / df['Close']
-    df['ema12'] = ta.trend.ema_indicator(close=df['Close'], window=12) / df['Close'] - 1
-    df['ema26'] = ta.trend.ema_indicator(close=df['Close'], window=26) / df['Close'] - 1
+    df['ema12'] = ta.trend.ema_indicator(close=df['Close'], window=12) /df['Close'] -1
+    df['ema26'] = ta.trend.ema_indicator(close=df['Close'], window=26) /df['Close'] -1
     df['macd'] = (df['ema12'] - df['ema26'])
-    df['rsi14'] = ta.momentum.RSIIndicator(close=df['Close'], window=14).rsi() / 50 - 1
-    df['stoch_rsi'] = ta.momentum.StochRSIIndicator(close=df['Close'], window=14).stochrsi() * 2 - 1
+    df['rsi14'] = ta.momentum.rsi(close=df['Close'], window=14) / 50 - 1
+    df['stoch_rsi'] = ta.momentum.stochrsi(close=df['Close'], window=14) * 2 -1 
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
     

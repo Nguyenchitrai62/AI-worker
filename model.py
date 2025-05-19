@@ -2,10 +2,26 @@ import pandas as pd
 import numpy as np
 import ta
 import tensorflow as tf
+import ccxt
 
+# Kết nối với Binance
+binance = ccxt.binance({
+    'apiKey': '',
+    'secret': '',
+})
 # ==== 1. Đọc dữ liệu OHLCV gốc ====
-df = pd.read_csv('OHLCV.csv', parse_dates=['Date'])
-df = df.sort_values('Date')
+def fetch_data(count = 130):
+    try:
+        ohlcv = binance.fetch_ohlcv('BTC/USDT', timeframe='1h', limit=count)
+        df = pd.DataFrame(ohlcv, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+        df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+        # print(f"✅ Fetched {len(df)} recent sessions")
+        return df
+    except Exception as e:
+        print(f"❌ Error fetching data: {e}")
+        return pd.DataFrame()
+    
+df = fetch_data(200)
 
 # ========= 2. Tính các chỉ báo kỹ thuật =========
 
@@ -16,8 +32,8 @@ df['ema26'] = ta.trend.ema_indicator(close=df['Close'], window=26) /df['Close'] 
 df['macd'] = (df['ema12'] - df['ema26'])
 df['rsi14'] = ta.momentum.rsi(close=df['Close'], window=14) / 50 - 1
 df['stoch_rsi'] = ta.momentum.stochrsi(close=df['Close'], window=14) * 2 -1 
-bb_indicator = ta.volatility.BollingerBands(close=df['Close'], window=14)
-df['bb_width'] = (bb_indicator.bollinger_hband() - bb_indicator.bollinger_lband()) / bb_indicator.bollinger_mavg()
+bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
+df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
 
 # ==== 3. Loại bỏ các dòng NaN (do chỉ báo chưa đủ dữ liệu) ====
 df = df.dropna()
@@ -49,6 +65,9 @@ pred_labels = (confidence > 0.5).astype(int)
 # Thêm NaN vào đầu để khớp chiều dài
 df['predict'] = [np.nan] * timesteps + pred_labels.tolist()
 df['confidence'] = [np.nan] * timesteps + confidence.tolist()
+
+last_conf = df['confidence'].iloc[-1]
+print(f" độ tin cậy: {last_conf:.4f}")
 
 # ==== 9. Lưu file kết quả (nếu cần) ====
 df.to_csv('data_with_predictions.csv', index=False)
