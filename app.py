@@ -53,7 +53,8 @@ def add_technical_indicators(df):
     bb = ta.volatility.BollingerBands(close=df['Close'], window=14)
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
     
-    df = df.dropna(subset=['ema26']).reset_index(drop=True)
+    df = df.dropna(subset=['ema26']).tail(105).reset_index(drop=True)
+
     return df
 
 
@@ -119,7 +120,7 @@ def main_loop():
         if not df.empty:
             update_mongo(df)
 
-        df_mongo = fetch_mongo_data(130)
+        df_mongo = fetch_mongo_data(200)
         if not df_mongo.empty:
             df_mongo = add_technical_indicators(df_mongo)
             df_mongo = predict_with_model(df_mongo)
