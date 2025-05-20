@@ -56,8 +56,6 @@ def add_technical_indicators(df):
     df = df.dropna(subset=['ema26']).reset_index(drop=True)
     return df
 
-# Load AI model (run once)
-model = tf.keras.models.load_model('transformer_model_balanced.keras')
 
 # Predict with Transformer model
 def predict_with_model(df):
@@ -111,36 +109,31 @@ def fetch_mongo_data(count = 130):
         print(f"❌ Error fetching MongoDB data: {e}")
         return pd.DataFrame()
 
-# Main loop
+model = tf.keras.models.load_model('transformer_model_balanced.keras')
+
 def main_loop():
     while True:
         start_time = time.time()
 
-        # Step 1: Fetch 5 recent sessions
         df = fetch_data(5)
         if not df.empty:
-            # Step 2: Update MongoDB with new data
             update_mongo(df)
 
-        # Step 3: Fetch 130 latest sessions from MongoDB
         df_mongo = fetch_mongo_data(130)
         if not df_mongo.empty:
-            # Step 4: Add technical indicators
             df_mongo = add_technical_indicators(df_mongo)
-            
-            # Step 5: Run AI model predictions
             df_mongo = predict_with_model(df_mongo)
             
             # print(df_mongo['confidence'])
             
-            # Step 6: Update MongoDB with predictions
             update_mongo(df_mongo)
             
         else:
             print("❌ Skipping predictions due to empty MongoDB data")
 
-        end_time = time.time()
-        elapsed = end_time - start_time
+
+        
+        elapsed = time.time() - start_time
         print(f"✅ Loop completed in {elapsed:.2f} seconds")
 
         # Wait for next iteration (minimum 2 seconds)
@@ -157,7 +150,10 @@ def start_main_loop():
     global main_loop_thread
     if main_loop_thread is None or not main_loop_thread.is_alive():
         print("⚠️ main_loop thread is not alive. Restarting...")
-        main_loop_thread = None  # XÓA THREAD CŨ
+        main_loop_thread = None 
+        
+        import gc; gc.collect() 
+        
         main_loop_thread = threading.Thread(target=main_loop, daemon=True)
         main_loop_thread.start()
     else:
