@@ -109,7 +109,7 @@ def main():
         # Dự đoán với mô hình Transformer
         df = predict_with_model(df)
         
-        print(df['confidence'].iloc[-1])
+        print(df['confidence'])
 
         final_row_count = len(df)
         print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    
