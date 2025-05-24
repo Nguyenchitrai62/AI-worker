@@ -29,11 +29,11 @@ from datetime import timedelta
 
 df['Date'] = pd.to_datetime(df['Date'], unit='ms')
 
-# Cộng thêm 7 giờ để chuyển sang UTC+7
-df['Date'] = df['Date'] + timedelta(hours=7)
+# # Cộng thêm 7 giờ để chuyển sang UTC+7
+# df['Date'] = df['Date'] + timedelta(hours=7)
 
-# Định dạng ngắn gọn hơn: Tháng-Ngày-Năm Giờ:Phút
-df['Date'] = df['Date'].dt.strftime('%m/%d/%Y %H:%M')
+# # Định dạng ngắn gọn hơn: Tháng-Ngày-Năm Giờ:Phút
+# df['Date'] = df['Date'].dt.strftime('%m/%d/%Y %H:%M')
 
 df.to_csv('OHLCV.csv', index=False)
 

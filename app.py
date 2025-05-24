@@ -11,6 +11,7 @@ from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 from fastapi import FastAPI
 import threading
+import gc;
 
 # Load environment variables
 load_dotenv()
@@ -22,7 +23,7 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 
 # Access DB and Collection
 db = client['my_database']
-collection = db['my_collection']
+collection = db['AI_prediction']
 
 # Connect to Binance
 binance = ccxt.binance({
@@ -120,7 +121,7 @@ def main_loop():
         if not df.empty:
             update_mongo(df)
 
-        df_mongo = fetch_mongo_data(300)
+        df_mongo = fetch_mongo_data(200)
         if not df_mongo.empty:
             df_mongo = add_technical_indicators(df_mongo)
             df_mongo = predict_with_model(df_mongo)
@@ -153,7 +154,7 @@ def start_main_loop():
         print("⚠️ main_loop thread is not alive. Restarting...")
         main_loop_thread = None 
         tf.keras.backend.clear_session()
-        import gc; gc.collect() 
+        gc.collect() 
         
         main_loop_thread = threading.Thread(target=main_loop, daemon=True)
         main_loop_thread.start()

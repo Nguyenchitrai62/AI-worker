@@ -20,7 +20,7 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 
 # Truy cập DB và Collection
 db = client['my_database']
-collection = db['my_collection']
+collection = db['AI_prediction']
 
 # Kết nối với Binance
 binance = ccxt.binance({
