@@ -130,7 +130,29 @@ class LinearPositionalEncoding(tf.keras.layers.Layer):
         
         return inputs * position_weights
     
-model = tf.keras.models.load_model('model.keras', custom_objects={'LinearPositionalEncoding': LinearPositionalEncoding})
+class ExponentialPositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, decay_rate=0.03, **kwargs):
+        super(ExponentialPositionalEncoding, self).__init__(**kwargs)
+        self.decay_rate = decay_rate
+    
+    def call(self, inputs):
+        seq_len = tf.shape(inputs)[1]
+        feature_dim = tf.shape(inputs)[2]
+        
+        positions = tf.range(seq_len, dtype=tf.float32)
+        position_weights = tf.exp(-self.decay_rate * (tf.cast(seq_len - 1, tf.float32) - positions))
+        
+        position_weights = tf.reshape(position_weights, [1, seq_len, 1])
+        position_weights = tf.tile(position_weights, [1, 1, feature_dim])
+        
+        return inputs * position_weights
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({"decay_rate": self.decay_rate})
+        return config
+    
+model = tf.keras.models.load_model('model_e.keras', custom_objects={'ExponentialPositionalEncoding': ExponentialPositionalEncoding})
 
 def main_loop():
     while True:
