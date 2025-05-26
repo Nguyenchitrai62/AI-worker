@@ -110,8 +110,27 @@ def fetch_mongo_data(count = 130):
     except Exception as e:
         print(f"❌ Error fetching MongoDB data: {e}")
         return pd.DataFrame()
-
-model = tf.keras.models.load_model('transformer_model_balanced.keras')
+    
+# ===== Linear Positional Encoding =====
+class LinearPositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(LinearPositionalEncoding, self).__init__(**kwargs)
+    
+    def call(self, inputs):
+        seq_len = tf.shape(inputs)[1]
+        feature_dim = tf.shape(inputs)[2]
+        
+        # Tạo position weights: càng gần hiện tại thì weight càng cao
+        positions = tf.range(seq_len, dtype=tf.float32)
+        position_weights = 0.05 + positions / tf.cast(seq_len - 1, tf.float32)
+        
+        # Reshape để broadcast
+        position_weights = tf.reshape(position_weights, [1, seq_len, 1])
+        position_weights = tf.tile(position_weights, [1, 1, feature_dim])
+        
+        return inputs * position_weights
+    
+model = tf.keras.models.load_model('model.keras', custom_objects={'LinearPositionalEncoding': LinearPositionalEncoding})
 
 def main_loop():
     while True:

@@ -52,8 +52,26 @@ def add_technical_indicators(df):
     df['bb_width'] = (bb.bollinger_hband() - bb.bollinger_lband()) / bb.bollinger_mavg()
     return df
 
-# Load mô hình AI (chạy 1 lần duy nhất)
-model = tf.keras.models.load_model('transformer_model_balanced.keras')
+# ===== Linear Positional Encoding =====
+class LinearPositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(LinearPositionalEncoding, self).__init__(**kwargs)
+    
+    def call(self, inputs):
+        seq_len = tf.shape(inputs)[1]
+        feature_dim = tf.shape(inputs)[2]
+        
+        # Tạo position weights: càng gần hiện tại thì weight càng cao
+        positions = tf.range(seq_len, dtype=tf.float32)
+        position_weights = 0.05 + positions / tf.cast(seq_len - 1, tf.float32)
+        
+        # Reshape để broadcast
+        position_weights = tf.reshape(position_weights, [1, seq_len, 1])
+        position_weights = tf.tile(position_weights, [1, 1, feature_dim])
+        
+        return inputs * position_weights
+    
+model = tf.keras.models.load_model('model.keras', custom_objects={'LinearPositionalEncoding': LinearPositionalEncoding})
 
 # Hàm dự đoán với mô hình Transformer
 def predict_with_model(df):
