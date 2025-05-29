@@ -93,7 +93,8 @@ class ExponentialPositionalEncoding(tf.keras.layers.Layer):
         config.update({"decay_rate": self.decay_rate})
         return config
     
-model = tf.keras.models.load_model('model_e.keras', custom_objects={'ExponentialPositionalEncoding': ExponentialPositionalEncoding})
+# model = tf.keras.models.load_model('model_e.keras', custom_objects={'ExponentialPositionalEncoding': ExponentialPositionalEncoding})
+model = tf.keras.models.load_model('transformer_model_balanced.keras')
 
 # Hàm dự đoán với mô hình Transformer
 def predict_with_model(df):
@@ -141,7 +142,7 @@ def main():
         start_time = time.time()  # Lấy thời gian bắt đầu vòng lặp
 
         # Crawl dữ liệu từ Binance
-        df = fetch_data(200)
+        df = fetch_data(1000)
 
         # Thêm chỉ báo kỹ thuật
         df = add_technical_indicators(df)
@@ -155,7 +156,7 @@ def main():
         print(f"🔍 Số dòng sau khi dropna: {final_row_count}")    
         
         # Cập nhật MongoDB
-        # update_mongo(df)
+        update_mongo(df)
 
         end_time = time.time()  # Lấy thời gian kết thúc vòng lặp
 
