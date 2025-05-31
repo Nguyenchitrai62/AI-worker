@@ -93,8 +93,8 @@ class ExponentialPositionalEncoding(tf.keras.layers.Layer):
         config.update({"decay_rate": self.decay_rate})
         return config
     
-# model = tf.keras.models.load_model('model_e.keras', custom_objects={'ExponentialPositionalEncoding': ExponentialPositionalEncoding})
-model = tf.keras.models.load_model('transformer_model_balanced.keras')
+model = tf.keras.models.load_model('model_e.keras', custom_objects={'LinearPositionalEncoding': LinearPositionalEncoding})
+# model = tf.keras.models.load_model('transformer_model_balanced.keras')
 
 # Hàm dự đoán với mô hình Transformer
 def predict_with_model(df):
