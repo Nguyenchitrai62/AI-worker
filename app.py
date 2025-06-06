@@ -155,60 +155,36 @@ class ExponentialPositionalEncoding(tf.keras.layers.Layer):
 # model = tf.keras.models.load_model('model_e.keras', custom_objects={'LinearPositionalEncoding': LinearPositionalEncoding})
 model = tf.keras.models.load_model('transformer_model_balanced.keras')
 
-def main_loop():
-    while True:
-        start_time = time.time()
+def run_prediction_task():
+    start_time = time.time()
 
-        df = fetch_data(5)
-        if not df.empty:
-            update_mongo(df)
+    df = fetch_data(5)
+    if not df.empty:
+        update_mongo(df)
 
-        df_mongo = fetch_mongo_data(200)
-        if not df_mongo.empty:
-            df_mongo = add_technical_indicators(df_mongo)
-            df_mongo = predict_with_model(df_mongo)
-            
-            # print(df_mongo['confidence'])
-            
-            update_mongo(df_mongo)
-            
-        else:
-            print("❌ Skipping predictions due to empty MongoDB data")
-
-
+    df_mongo = fetch_mongo_data(200)
+    if not df_mongo.empty:
+        df_mongo = add_technical_indicators(df_mongo)
+        df_mongo = predict_with_model(df_mongo)
         
-        elapsed = time.time() - start_time
-        print(f"✅ Loop completed in {elapsed:.2f} seconds")
+        # print(df_mongo['confidence'])
+        
+        update_mongo(df_mongo)
+        
+    else:
+        print("❌ Skipping predictions due to empty MongoDB data")
 
-        # Wait for next iteration (minimum 2 seconds)
-        if elapsed < 2:
-            time.sleep(2 - elapsed)
+    elapsed = time.time() - start_time
+    print(f"✅ Task completed in {elapsed:.2f} seconds")
 
 # Create FastAPI app
 app = FastAPI()
 
-# Global thread holder
-main_loop_thread = None
-
-def start_main_loop():
-    global main_loop_thread
-    if main_loop_thread is None or not main_loop_thread.is_alive():
-        print("⚠️ main_loop thread is not alive. Restarting...")
-        main_loop_thread = None 
-        tf.keras.backend.clear_session()
-        gc.collect() 
-        
-        main_loop_thread = threading.Thread(target=main_loop, daemon=True)
-        main_loop_thread.start()
-    else:
-        print("✅ main_loop thread is still alive.")
-
 @app.get("/ping")
 async def ping():
-    start_main_loop()
-    return {"message": "Server alive"}
+    run_prediction_task()
+    return {"message": "Task completed successfully"}
 
 if __name__ == "__main__":
-    start_main_loop()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
